@@ -1,48 +1,60 @@
 package com.example.demo.service;
 
+import com.example.demo.model.dto.DepartmentRequestDTO;
+import com.example.demo.model.dto.DepartmentResponseDTO;
 import com.example.demo.model.entity.Department;
 import com.example.demo.repository.DepartmentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class DepartmentService {
 
-    @Autowired
-    private DepartmentRepository departmentRepository;
+    private final DepartmentRepository departmentRepository;
 
-    // Listar departamentos
-    public List<Department> findAllDepartments() {
-        return departmentRepository.findAll();
+    public DepartmentService(DepartmentRepository departmentRepository) {
+        this.departmentRepository = departmentRepository;
     }
 
-    // Buscar por ID
-    public Department findDepartmentById(Long id) {
-        Optional<Department> dept = departmentRepository.findById(id);
-        return dept.orElse(null); // se não encontrar, retorna null
+    public DepartmentResponseDTO create(DepartmentRequestDTO dto) {
+        Department department = new Department(dto.getName());
+        Department saved = departmentRepository.save(department);
+
+        DepartmentResponseDTO response = new DepartmentResponseDTO();
+        response.setId(saved.getId());
+        response.setName(saved.getName());
+        return response;
     }
 
-    // Criar novo departamento
-    public Department createDepartment(Department department) {
-        return departmentRepository.save(department);
+    public List<DepartmentResponseDTO> getAll() {
+        return departmentRepository.findAll().stream()
+                .map(dep -> {
+                    DepartmentResponseDTO dto = new DepartmentResponseDTO();
+                    dto.setId(dep.getId());
+                    dto.setName(dep.getName());
+                    return dto;
+                }).collect(Collectors.toList());
     }
 
-    // Atualizar departamento
-    public Department updateDepartment(Long id, Department department) {
-        Department existing = findDepartmentById(id);
-        if (existing != null) {
-            existing.setName(department.getName());
-            existing.setDescription(department.getDescription());
-            return departmentRepository.save(existing);
-        }
-        return null;
+    public DepartmentResponseDTO update(Long id, DepartmentRequestDTO dto) {
+        Department department = departmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Departamento não encontrado"));
+        department.setName(dto.getName());
+        Department updated = departmentRepository.save(department);
+
+        DepartmentResponseDTO response = new DepartmentResponseDTO();
+        response.setId(updated.getId());
+        response.setName(updated.getName());
+        return response;
     }
 
-    // Deletar departamento
-    public void deleteDepartment(Long id) {
-        departmentRepository.deleteById(id);
+    public void delete(Long id) {
+        Department department = departmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Departamento não encontrado"));
+        departmentRepository.delete(department);
     }
 }

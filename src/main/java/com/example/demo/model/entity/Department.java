@@ -1,6 +1,7 @@
 package com.example.demo.model.entity;
 
 import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
 public class Department {
@@ -10,21 +11,21 @@ public class Department {
     private Long id;
 
     private String name;
-    private String description;
 
+    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Employee> employees;
+
+    // Construtor vazio
     public Department() {}
 
-    public Department(String name, String description) {
+    public Department(String name) {
         this.name = name;
-        this.description = description;
     }
 
-    // Getters e setters
+    // Getters e Setters
     public Long getId() { return id; }
-
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public List<Employee> getEmployees() { return employees; }
+    public void setEmployees(List<Employee> employees) { this.employees = employees; }
 }

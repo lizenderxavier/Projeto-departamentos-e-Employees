@@ -10,36 +10,37 @@ public class Employee {
     private Long id;
 
     private String name;
-    private Double salary;
-    private String position; // novo campo
+    private String email;
 
-    // muitos empregados para 1 departamento
+    @Enumerated(EnumType.STRING)
+    private JobRole role;
+
     @ManyToOne
     @JoinColumn(name = "department_id")
     private Department department;
 
-    // construtor vazio (obrigatório para JPA)
+    // Construtor vazio
     public Employee() {}
 
-    // construtor completo
-    public Employee(String name, Double salary, String position, Department department) {
+    // Construtor completo
+    public Employee(String name, String email, JobRole role, Department department) {
         this.name = name;
-        this.salary = salary;
-        this.position = position;
+        this.email = email;
+        this.role = role;
         this.department = department;
     }
 
-    // getters e setters
+    // Getters e Setters
     public Long getId() { return id; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public Double getSalary() { return salary; }
-    public void setSalary(Double salary) { this.salary = salary; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public String getPosition() { return position; }
-    public void setPosition(String position) { this.position = position; }
+    public JobRole getRole() { return role; }
+    public void setRole(JobRole role) { this.role = role; }
 
     public Department getDepartment() { return department; }
     public void setDepartment(Department department) { this.department = department; }
