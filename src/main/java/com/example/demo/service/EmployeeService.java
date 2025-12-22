@@ -1,58 +1,61 @@
 package com.example.demo.service;
 
-import com.example.demo.model.dto.EmployeeRequestDTO;
-import com.example.demo.model.dto.EmployeeResponseDTO;
+import com.example.demo.model.dto.create.EmployeeCreateDTO;
+import com.example.demo.model.dto.response.EmployeeResponseDTO;
+import com.example.demo.model.dto.update.EmployeeRequestDTO;
 import com.example.demo.model.entity.Department;
 import com.example.demo.model.entity.Employee;
 import com.example.demo.repository.DepartmentRepository;
 import com.example.demo.repository.EmployeeRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
 
-    public EmployeeService(EmployeeRepository employeeRepository, DepartmentRepository departmentRepository) {
-        this.employeeRepository = employeeRepository;
-        this.departmentRepository = departmentRepository;
-    }
-
-    // CRIAR EMPLOYEE
-    public EmployeeResponseDTO create(EmployeeRequestDTO dto) {
+    // Salva um novo funcionário associando a um departamento existente
+    public EmployeeResponseDTO create(EmployeeCreateDTO dto) {
         Department department = departmentRepository.findById(dto.getDepartmentId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Departamento não encontrado"));
 
-        Employee employee = new Employee(dto.getName(), dto.getEmail(), dto.getRole(), department);
-        Employee saved = employeeRepository.save(employee);
+        Employee employee = new Employee();
+        employee.setName(dto.getName());
+        employee.setEmail(dto.getEmail());
+        employee.setRole(dto.getRole());
+        employee.setDepartment(department);
 
-        return toDTO(saved);
+        employeeRepository.save(employee);
+        return toResponseDTO(employee);
     }
 
-    // LISTAR TODOS OS EMPLOYEES
+    // Retorna todos os funcionários cadastrados convertidos para DTO
     public List<EmployeeResponseDTO> getAll() {
-        return employeeRepository.findAll().stream()
-                .map(this::toDTO)
+        return employeeRepository.findAll()
+                .stream()
+                .map(this::toResponseDTO)
                 .collect(Collectors.toList());
     }
 
-    // LISTAR EMPLOYEES POR DEPARTAMENTO
-    public List<EmployeeResponseDTO> getByDepartment(Long departmentId) {
-        return employeeRepository.findByDepartmentId(departmentId).stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+    // Recupera um funcionário específico pelo seu identificador
+    public EmployeeResponseDTO getById(Long id) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Funcionário não encontrado"));
+        return toResponseDTO(employee);
     }
 
-    // ATUALIZAR EMPLOYEE
+    // Atualiza os dados de um funcionário e valida a existência do novo departamento
     public EmployeeResponseDTO update(Long id, EmployeeRequestDTO dto) {
         Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee não encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Funcionário não encontrado"));
 
         Department department = departmentRepository.findById(dto.getDepartmentId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Departamento não encontrado"));
@@ -62,25 +65,39 @@ public class EmployeeService {
         employee.setRole(dto.getRole());
         employee.setDepartment(department);
 
-        Employee updated = employeeRepository.save(employee);
-        return toDTO(updated);
+        employeeRepository.save(employee);
+        return toResponseDTO(employee);
     }
 
-    // DELETAR EMPLOYEE
+    // Remove o registro do funcionário se o ID for válido
     public void delete(Long id) {
-        Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee não encontrado"));
-        employeeRepository.delete(employee);
+        if (!employeeRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Funcionário não encontrado");
+        }
+        employeeRepository.deleteById(id);
     }
 
-    // MÉTODO AUXILIAR PARA CONVERSÃO ENTITY → DTO
-    private EmployeeResponseDTO toDTO(Employee employee) {
+    // Filtra funcionários pertencentes a um departamento específico
+    public List<EmployeeResponseDTO> getByDepartment(Long departmentId) {
+        Department department = departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Departamento não encontrado"));
+
+        return employeeRepository.findByDepartment(department)
+                .stream()
+                .map(this::toResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    // Converte a entidade Employee para o formato de resposta DTO
+    private EmployeeResponseDTO toResponseDTO(Employee employee) {
         EmployeeResponseDTO dto = new EmployeeResponseDTO();
         dto.setId(employee.getId());
         dto.setName(employee.getName());
         dto.setEmail(employee.getEmail());
         dto.setRole(employee.getRole());
-        dto.setDepartmentName(employee.getDepartment().getName());
+        if (employee.getDepartment() != null) {
+            dto.setDepartmentId(employee.getDepartment().getId());
+        }
         return dto;
     }
 }
